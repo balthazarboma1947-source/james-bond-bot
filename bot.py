@@ -1,3 +1,4 @@
+```python
 import json
 import os
 import re
@@ -6,7 +7,8 @@ from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import quote
 
-import feedparser
+import requests
+from bs4 import BeautifulSoup
 
 
 # ============================================================
@@ -103,7 +105,7 @@ def stuur_email(titel, zoekterm, prijs, link, beschrijving=""):
 
 
 # ============================================================
-# GEZIENE ADVERTENTIES
+# GEZIEN ADVERTENTIES
 # ============================================================
 
 def laad_gezien():
@@ -169,7 +171,6 @@ def vind_prijs(tekst):
         waarde = match.group(1)
 
         if "," in waarde and "." in waarde:
-
             waarde = (
                 waarde
                 .replace(".", "")
@@ -177,49 +178,105 @@ def vind_prijs(tekst):
             )
 
         elif "," in waarde:
-
             waarde = waarde.replace(",", ".")
 
         elif waarde.count(".") > 1:
-
             waarde = waarde.replace(".", "")
 
         try:
-
             return float(waarde)
 
         except ValueError:
-
             continue
 
     return None
 
 
 # ============================================================
-# 2DEHANDS RSS
+# 2DEHANDS ZOEKEN
 # ============================================================
 
 def zoek_2dehands(zoekterm):
 
-    encoded = quote(zoekterm)
-
     url = (
-        "https://www.2dehands.be/rss/lrp/"
-        f"?query={encoded}"
+        "https://www.2dehands.be/q/zoeken/"
+        f"?query={quote(zoekterm)}"
     )
 
     print(f"Zoeken: {zoekterm}")
+    print(f"URL: {url}")
 
-    feed = feedparser.parse(url)
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 "
+            "(Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 "
+            "(KHTML, like Gecko) "
+            "Chrome/131.0 Safari/537.36"
+        )
+    }
 
-    if feed.bozo:
+    response = requests.get(
+        url,
+        headers=headers,
+        timeout=30,
+    )
 
-        print(
-            "Waarschuwing bij RSS-feed:",
-            feed.bozo_exception,
+    response.raise_for_status()
+
+    soup = BeautifulSoup(
+        response.text,
+        "html.parser",
+    )
+
+    resultaten = []
+
+    for link in soup.find_all("a", href=True):
+
+        href = link["href"]
+
+        if "/v/" not in href:
+            continue
+
+        if "/a" not in href and "/m" not in href:
+            continue
+
+        titel = link.get_text(
+            " ",
+            strip=True,
         )
 
-    return feed.entries[:MAX_RESULTATEN]
+        if not titel:
+            continue
+
+        if href.startswith("/"):
+            href = (
+                "https://www.2dehands.be"
+                + href
+            )
+
+        if any(
+            item["link"] == href
+            for item in resultaten
+        ):
+            continue
+
+        resultaten.append(
+            {
+                "title": titel,
+                "link": href,
+                "summary": "",
+            }
+        )
+
+        if len(resultaten) >= MAX_RESULTATEN:
+            break
+
+    print(
+        f"{len(resultaten)} resultaten gevonden."
+    )
+
+    return resultaten
 
 
 # ============================================================
@@ -233,16 +290,7 @@ def verwerk_advertentie(
     stuur_melding=True,
 ):
 
-    advertentie_id = (
-        entry.get("id")
-        or entry.get("guid")
-        or entry.get("link")
-    )
-
-    if not advertentie_id:
-        return False
-
-    advertentie_id = str(advertentie_id)
+    advertentie_id = entry["link"]
 
     if advertentie_id in gezien:
         return False
@@ -312,11 +360,6 @@ def main():
                 zoekterm
             )
 
-            print(
-                f"{len(resultaten)} "
-                "resultaten gevonden."
-            )
-
             for entry in resultaten:
 
                 try:
@@ -348,7 +391,9 @@ def main():
     bewaar_gezien(gezien)
 
     if eerste_run:
+
         EERSTE_RUN_FILE.touch()
+
         print(
             "Eerste run voltooid. "
             "Bestaande advertenties zijn opgeslagen."
@@ -362,3 +407,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
