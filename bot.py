@@ -27,7 +27,6 @@ links = []
 
 for link in soup.find_all("a", href=True):
 
-```
 href = link["href"]
 titel = link.get_text(" ", strip=True)
 
@@ -57,6 +56,5 @@ for item in links:
 print("TITEL:", item["titel"])
 print("LINK:", item["link"])
 print("---")
-```
 
 print("TEST KLAAR")
