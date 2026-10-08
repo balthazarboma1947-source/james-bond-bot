@@ -24,10 +24,8 @@ EERSTE_RUN_FILE = Path("first_run_done.txt")
 
 EMAIL_HOST = os.environ["EMAIL_HOST"]
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "465"))
-
 EMAIL_USERNAME = os.environ["EMAIL_USERNAME"]
 EMAIL_PASSWORD = os.environ["EMAIL_PASSWORD"]
-
 EMAIL_FROM = os.environ["EMAIL_FROM"]
 EMAIL_TO = os.environ["EMAIL_TO"]
 
@@ -41,7 +39,6 @@ bericht["From"] = EMAIL_FROM
 bericht["To"] = EMAIL_TO
 
 tekst = "NIEUWE JAMES BOND-ADVERTENTIE\n\n"
-
 tekst += f"Zoekterm: {zoekterm}\n"
 tekst += f"Titel: {titel}\n"
 
@@ -354,13 +351,5 @@ for zoekterm in ZOEKOPDRACHTEN:
             except Exception as fout:
 
                 print(
-                    "Fout bij advertentie:",
-                    fout,
-                )
-
-    except Exception as fout:
-
-        print(
-            f"Fout bij zoekopdracht "
-            f"'{
+                    "Fout bij adv
 ```
